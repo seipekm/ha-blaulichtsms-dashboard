@@ -1,7 +1,12 @@
 """Sensor platform for BlaulichtSMS Dashboard."""
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -10,71 +15,127 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
 
+@dataclass(frozen=True, kw_only=True)
+class BlaulichtSMSSensorEntityDescription(SensorEntityDescription):
+    """Describes BlaulichtSMS sensor entity."""
+    value_fn: Callable[[Any], Any]
+
+
+SENSOR_TYPES: tuple[BlaulichtSMSSensorEntityDescription, ...] = (
+    BlaulichtSMSSensorEntityDescription(
+        key="einsatzstatus",
+        name="Einsatzstatus",
+        icon="mdi:fire-truck",
+        value_fn=lambda data: "Aktiv" if data else "Inaktiv",
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="aktive_alarme_anzahl",
+        name="Aktive Alarme Anzahl",
+        icon="mdi:counter",
+        value_fn=lambda data: len(data) if data else 0,
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="alarm_text",
+        name="Alarm Text",
+        icon="mdi:text-box",
+        value_fn=lambda data: data[0].get("alarmText", "Unbekannt") if data else "Kein Alarm",
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="alarm_date",
+        name="Alarm Datum",
+        icon="mdi:calendar-clock",
+        value_fn=lambda data: data[0].get("alarmDate", "Unbekannt") if data else "Kein Alarm",
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="alarm_autor",
+        name="Alarm Autor",
+        icon="mdi:account-hard-hat",
+        value_fn=lambda data: data[0].get("authorName", "Unbekannt") if data else "Kein Alarm",
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="alarm_gruppen",
+        name="Alarm Gruppen",
+        icon="mdi:account-group",
+        value_fn=lambda data: ", ".join(g.get("groupName", "") for g in data[0].get("alarmGroups", []) if g.get("groupName")) if data else "Keine",
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="anzahl_alarmiert",
+        name="Anzahl Alarmiert",
+        icon="mdi:account-multiple",
+        value_fn=lambda data: data[0].get("usersAlertedCount", 0) if data else 0,
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="teilnehmer_zugesagt",
+        name="Teilnehmer Zugesagt",
+        icon="mdi:account-check",
+        value_fn=lambda data: sum(1 for r in data[0].get("recipients", []) if r.get("participation") == "yes") if data else 0,
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="teilnehmer_abgesagt",
+        name="Teilnehmer Abgesagt",
+        icon="mdi:account-cancel",
+        value_fn=lambda data: sum(1 for r in data[0].get("recipients", []) if r.get("participation") == "no") if data else 0,
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="teilnehmer_ausstehend",
+        name="Teilnehmer Ausstehend",
+        icon="mdi:account-clock",
+        value_fn=lambda data: sum(1 for r in data[0].get("recipients", []) if r.get("participation") == "pending") if data else 0,
+    ),
+    BlaulichtSMSSensorEntityDescription(
+        key="einsatzort",
+        name="Einsatzort",
+        icon="mdi:map-marker",
+        value_fn=lambda data: (
+            data[0].get("geolocation", {}).get("address") or 
+            data[0].get("coordinates") or 
+            "Unbekannt"
+        ) if data else "Kein Alarm",
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the BlaulichtSMS sensor."""
+    """Set up the BlaulichtSMS sensors."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities([BlaulichtSMSEinsatzSensor(coordinator)])
+    entities = [
+        BlaulichtSMSSensor(coordinator, description)
+        for description in SENSOR_TYPES
+    ]
+
+    async_add_entities(entities)
 
 
-class BlaulichtSMSEinsatzSensor(CoordinatorEntity, SensorEntity):
+class BlaulichtSMSSensor(CoordinatorEntity, SensorEntity):
     """Representation of a BlaulichtSMS Sensor."""
 
-    _attr_has_entity_name = True
-    _attr_icon = "mdi:fire-truck"
+    entity_description: BlaulichtSMSSensorEntityDescription
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator, description: BlaulichtSMSSensorEntityDescription) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"blaulichtsms_{coordinator.customer_id}_einsatzstatus"
-        self._attr_name = "Einsatzstatus"
+        self.entity_description = description
+        self._attr_has_entity_name = True
+        self._attr_unique_id = f"blaulichtsms_{coordinator.customer_id}_{description.key}"
 
     @property
-    def native_value(self) -> str:
-        """Return the state of the sensor."""
-        # Aktiv, wenn mindestens ein Alarm in der Liste ist
-        if self.coordinator.data:
-            return "Aktiv"
-        return "Inaktiv"
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        alarms = self.coordinator.data or []
-        attributes = {
-            "aktive_alarme_anzahl": len(alarms),
-            "alarme_details": alarms,
+    def device_info(self):
+        """Return device info."""
+        return {
+            "identifiers": {(DOMAIN, self.coordinator.customer_id)},
+            "name": f"BlaulichtSMS ({self.coordinator.username})",
+            "manufacturer": "BlaulichtSMS",
         }
 
-        # Falls ein Einsatz aktiv ist, extrahieren wir die Details des aktuellsten Alarms
-        if alarms:
-            latest_alarm = alarms[0]
-            attributes["alarm_text"] = latest_alarm.get("alarmText", "Unbekannt")
-            attributes["alarm_date"] = latest_alarm.get("alarmDate", "Unbekannt")
-            attributes["alarm_autor"] = latest_alarm.get("authorName", "Unbekannt")
-            
-            # Alarmgruppen auslesen
-            groups = latest_alarm.get("alarmGroups", [])
-            attributes["alarm_gruppen"] = ", ".join(g.get("groupName", "") for g in groups if g.get("groupName"))
-            
-            # Anzahl der alarmierten Personen
-            attributes["anzahl_alarmiert"] = latest_alarm.get("usersAlertedCount", 0)
-            
-            # Rückmeldungen auswerten
-            recipients = latest_alarm.get("recipients", [])
-            attributes["teilnehmer_zugesagt"] = sum(1 for r in recipients if r.get("participation") == "yes")
-            attributes["teilnehmer_abgesagt"] = sum(1 for r in recipients if r.get("participation") == "no")
-            attributes["teilnehmer_ausstehend"] = sum(1 for r in recipients if r.get("participation") == "pending")
-            
-            # Geolocation / Adresse
-            geo = latest_alarm.get("geolocation", {})
-            if geo and geo.get("address"):
-                attributes["einsatzort"] = geo.get("address")
-            elif latest_alarm.get("coordinates"):
-                attributes["einsatzort_koordinaten"] = latest_alarm.get("coordinates")
-
-        return attributes
+    @property
+    def native_value(self) -> Any:
+        """Return the state of the sensor."""
+        try:
+            return self.entity_description.value_fn(self.coordinator.data)
+        except Exception:
+            return None

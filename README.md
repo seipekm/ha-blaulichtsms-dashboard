@@ -12,6 +12,15 @@ Eine Home Assistant Custom Component, um aktive Einsatzalarme von [BlaulichtSMS]
 - Eigener Sensor mit Einsatzdetails (Ort, alarmierte Gruppen, Anzahl Zugesagt/Abgesagt).
 - Einfache Einrichtung über die Home Assistant Benutzeroberfläche.
 
+## Voraussetzungen
+
+Bevor du diese Integration nutzen kannst, musst du zwingend ein **Dashboard (Einsatzmonitor)** in BlaulichtSMS angelegt haben. Die Integration loggt sich in dieses Dashboard ein, um die Daten abzurufen.
+
+1. Logge dich unter [start.blaulichtsms.net](https://start.blaulichtsms.net) in die Web-Plattform ein.
+2. Gehe im Menü auf **Einsatzmonitor** -> **Anzeige & Konfiguration**.
+3. Klicke auf **Neuen Einsatzmonitor anlegen**.
+4. Vergib einen Namen und ein Passwort.
+*(Genau diese speziellen Dashboard-Zugangsdaten benötigst du später für die Einrichtung in Home Assistant!)*
 ## Installation via HACS (Empfohlen)
 
 1. Öffne **HACS** in deiner Home Assistant Instanz.

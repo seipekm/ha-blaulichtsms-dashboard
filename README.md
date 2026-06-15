@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="BlaulichtSMS Dashboard Logo" width="200">
+</p>
+
 # BlaulichtSMS Dashboard für Home Assistant
 
 Eine Home Assistant Custom Component, um aktive Einsatzalarme von [BlaulichtSMS](https://blaulichtsms.net/) abzufragen und darzustellen.

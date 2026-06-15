@@ -1,6 +1,7 @@
 """Sensor platform for BlaulichtSMS Dashboard."""
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -15,6 +16,25 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
 
+def is_alarm_active(data) -> bool:
+    """Check if the latest alarm is active (younger than 1 hour)."""
+    if not data:
+        return False
+        
+    alarm_date_str = data[0].get("alarmDate")
+    if not alarm_date_str:
+        return True
+        
+    try:
+        alarm_date = datetime.fromisoformat(alarm_date_str.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        if now - alarm_date > timedelta(hours=1):
+            return False
+        return True
+    except Exception:
+        return True
+
+
 @dataclass(frozen=True, kw_only=True)
 class BlaulichtSMSSensorEntityDescription(SensorEntityDescription):
     """Describes BlaulichtSMS sensor entity."""
@@ -26,7 +46,7 @@ SENSOR_TYPES: tuple[BlaulichtSMSSensorEntityDescription, ...] = (
         key="einsatzstatus",
         name="Einsatzstatus",
         icon="mdi:fire-truck",
-        value_fn=lambda data: "Aktiv" if data else "Inaktiv",
+        value_fn=lambda data: "Aktiv" if is_alarm_active(data) else "Inaktiv",
     ),
     BlaulichtSMSSensorEntityDescription(
         key="aktive_alarme_anzahl",

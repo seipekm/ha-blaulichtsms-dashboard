@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "BlaulichtSMS Dashboard Einrichtung",
+        "description": "Bitte gib die Zugangsdaten für dein BlaulichtSMS Dashboard ein.",
+        "data": {
+          "customer_id": "Kunden-ID (Customer ID)",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "scan_interval": "Abfrage-Intervall (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Zugangsdaten",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Das Konto ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BlaulichtSMS Optionen",
+        "data": {
+          "scan_interval": "Abfrage-Intervall (Sekunden)"
+        }
+      }
+    }
+  }
+}

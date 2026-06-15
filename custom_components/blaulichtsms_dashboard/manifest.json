@@ -5,9 +5,9 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/seipekm/ha-blaulichtsms-dashboard",
-  "issue_tracker": "https://github.com/seipekm/ha-blaulichtsms-dashboard/issues",
   "integration_type": "hub",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/seipekm/ha-blaulichtsms-dashboard/issues",
   "requirements": [],
   "version": "1.0.0"
 }

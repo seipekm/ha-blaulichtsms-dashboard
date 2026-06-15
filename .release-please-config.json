@@ -1,0 +1,14 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "custom_components/blaulichtsms_dashboard/manifest.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}

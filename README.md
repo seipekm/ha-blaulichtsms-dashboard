@@ -39,3 +39,40 @@ Bevor du diese Integration nutzen kannst, musst du zwingend ein **Dashboard (Ein
 2. Entpacke den Ordner `custom_components/blaulichtsms_dashboard` in dein Home Assistant `custom_components` Verzeichnis.
 3. Starte Home Assistant neu.
 4. Richte die Integration über **Einstellungen -> Geräte & Dienste** ein.
+
+## Automatisierungs-Beispiel
+
+Sobald ein Einsatz eingeht, wechselt der Sensor **Einsatzstatus** von `Inaktiv` auf `Aktiv`. Nach einer Stunde ohne neues Alarm-Datum wechselt er automatisch zurück. Diesen Statuswechsel kannst du optimal als Auslöser (Trigger) für Home Assistant Automatisierungen nutzen.
+
+Hier ist ein Beispiel, wie du bei einem Alarm automatisch das Licht einschaltest und eine Push-Nachricht mit dem Einsatzort auf dein Handy schickst:
+
+```yaml
+alias: "Feuerwehr: Neuer Alarm (BlaulichtSMS)"
+description: "Wird ausgelöst, wenn ein neuer Alarm über BlaulichtSMS reinkommt."
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: sensor.blaulichtsms_einsatzstatus
+    from: "Inaktiv"
+    to: "Aktiv"
+
+action:
+  # 1. Licht im Flur einschalten (Beispiel)
+  - service: light.turn_on
+    target:
+      entity_id: light.flur
+    data:
+      brightness_pct: 100
+      color_name: red
+
+  # 2. Eine Push-Benachrichtigung mit allen Infos an dein Handy schicken
+  - service: notify.notify
+    data:
+      title: "🚨 FEUERWEHR EINSATZ 🚨"
+      message: >
+        Alarmierungs-Text: {{ states('sensor.blaulichtsms_alarm_text') }}
+        
+        Einsatzort: {{ states('sensor.blaulichtsms_einsatzort') }}
+        Alarmierte Gruppen: {{ states('sensor.blaulichtsms_alarm_gruppen') }}
+```
